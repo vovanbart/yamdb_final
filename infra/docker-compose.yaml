@@ -8,7 +8,7 @@ services:
     env_file:
       - ./.env
   web:
-    image: avredin/yamdb_final:latest
+    image: vovanbart/yamdb_final:latest
     restart: always
     volumes:
       - static_value:/app/static/
@@ -37,7 +37,6 @@ services:
       - web
 
 volumes:
-  # Новые тома 
   static_value:
   media_value:
   logs_value:
