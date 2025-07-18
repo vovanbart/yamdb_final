@@ -13,6 +13,8 @@ services:
       context: ../api_yamdb       # собираем образ из папки с Django-проектом
       dockerfile: Dockerfile     # в ней должен быть Dockerfile веб-приложения
     image: yamdb_web:latest
+    ports:
+      - "8000:8000"
     container_name: yamdb_web
     restart: always
     depends_on:
