@@ -1,0 +1,13 @@
+BEGIN;
+SELECT setval(pg_get_serial_sequence('"reviews_title"','id'), coalesce(max("id"), 1), max("id") IS NOT null) FROM "reviews_title";
+SELECT setval(pg_get_serial_sequence('"reviews_genretitle"','id'), coalesce(max("id"), 1), max("id") IS NOT null) FROM "reviews_genretitle";
+SELECT setval(pg_get_serial_sequence('"reviews_category"','id'), coalesce(max("id"), 1), max("id") IS NOT null) FROM "reviews_category";
+SELECT setval(pg_get_serial_sequence('"reviews_genre"','id'), coalesce(max("id"), 1), max("id") IS NOT null) FROM "reviews_genre";
+SELECT setval(pg_get_serial_sequence('"reviews_review"','id'), coalesce(max("id"), 1), max("id") IS NOT null) FROM "reviews_review";
+SELECT setval(pg_get_serial_sequence('"reviews_comment"','id'), coalesce(max("id"), 1), max("id") IS NOT null) FROM "reviews_comment";
+COMMIT;
+BEGIN;
+SELECT setval(pg_get_serial_sequence('"users_user_groups"','id'), coalesce(max("id"), 1), max("id") IS NOT null) FROM "users_user_groups";
+SELECT setval(pg_get_serial_sequence('"users_user_user_permissions"','id'), coalesce(max("id"), 1), max("id") IS NOT null) FROM "users_user_user_permissions";
+SELECT setval(pg_get_serial_sequence('"users_user"','id'), coalesce(max("id"), 1), max("id") IS NOT null) FROM "users_user";
+COMMIT;

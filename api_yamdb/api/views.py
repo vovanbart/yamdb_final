@@ -5,7 +5,7 @@ from django.contrib.auth.tokens import default_token_generator
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.decorators import action, api_view, permission_classes
-from api_yamdb.settings import ADMIN_EMAIL
+from api_yamdb.settings import DEFAULT_FROM_EMAIL
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from reviews.models import Category, Genre, Review, Title
@@ -198,7 +198,7 @@ def send_code(user):
     code = default_token_generator.make_token(user)
     subject = 'Код'
     message = f'{code} - ваш код'
-    admin_email = ADMIN_EMAIL
+    admin_email = DEFAULT_FROM_EMAIL
     user_email = (user.email,)
     return send_mail(subject, message, admin_email, user_email)
 

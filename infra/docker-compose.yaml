@@ -7,34 +7,39 @@ services:
       - data_value:/var/lib/postgresql/data/
     env_file:
       - ./.env
+
   web:
-    image: vovanbart/yamdb_final:latest
+    build:
+      context: ../api_yamdb       # собираем образ из папки с Django-проектом
+      dockerfile: Dockerfile     # в ней должен быть Dockerfile веб-приложения
+    image: yamdb_web:latest
+    container_name: yamdb_web
     restart: always
-    volumes:
-      - static_value:/app/static/
-      - media_value:/app/media/
     depends_on:
       - db
     env_file:
       - ./.env
-
-  nginx:
-    image: nginx:1.21.3-alpine
-
-    ports:
-      - "80:80"
-
     volumes:
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - static_value:/app/static/
+      - media_value:/app/media/
+    command: >
+      sh -c "python manage.py collectstatic --noinput &&
+             python manage.py migrate --noinput &&
+             gunicorn api_yamdb.wsgi:application --bind 0.0.0.0:8000"
 
-      - static_value:/var/html/static/
-
-      - media_value:/var/html/media/
-
-      - logs_value:/var/logs/
-
+  nginx:                                      # теперь это фронтенд + reverse-proxy
+    build:
+      context: ../frontend                    # здесь лежит Dockerfile React-приложения
+      dockerfile: Dockerfile
+    container_name: yamdb_frontend
     depends_on:
       - web
+    ports:
+      - "80:80"
+    volumes:
+      - static_value:/app/static/            # чтобы раздавать /static/**
+      - media_value:/app/media/              # чтобы раздавать /media/**
+      - logs_value:/var/log/nginx/           # пишем логи внутрь тома
 
 volumes:
   static_value:

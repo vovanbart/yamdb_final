@@ -9,7 +9,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = os.getenv('SECRET_KEY', default='p&l%385148kslhtyn^##a1)ilz@4zqj=rq&agdol^##zgl9(vs')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
@@ -127,7 +127,7 @@ REST_FRAMEWORK = {
         'django_filters.rest_framework.DjangoFilterBackend',
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
-    'PAGE_SIZE': 10,
+    'PAGE_SIZE': 12,
 }
 
 SIMPLE_JWT = {
@@ -138,3 +138,25 @@ SIMPLE_JWT = {
 ADMIN_EMAIL = 'Admin@admin.ru'
 
 AUTH_USER_MODEL = 'users.User'
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+
+# SMTP-сервер Яндекса
+EMAIL_HOST = 'smtp.yandex.ru'
+
+# Логин и пароль берём из переменных окружения
+import environ
+env = environ.Env()
+environ.Env.read_env()  # или .env-файл
+
+EMAIL_HOST_USER = env('EMAIL_HOST_USER')        # ваш полный яндекс-адрес, напр. you@yandex.ru
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')# пароль (если включена 2FA — то app-пароль)
+
+# Порт и шифрование
+EMAIL_PORT = 465
+EMAIL_USE_SSL = True
+# --- или, если хотите TLS на 587 порту:
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True
+
+DEFAULT_FROM_EMAIL = env('EMAIL_HOST_USER')
