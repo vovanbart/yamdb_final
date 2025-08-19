@@ -5,63 +5,70 @@ networks:
     external: true
 
 volumes:
-  static_value:
-  media_value:
-  data_value:
+  yamdb_static:
+  yamdb_media:
+  yamdb_logs:
+  yamdb_db:
 
 services:
   db:
     image: postgres:13.0-alpine
+    container_name: yamdb_db
     restart: unless-stopped
-    volumes:
-      - data_value:/var/lib/postgresql/data/
     env_file:
-      - .env
+      - ./.env
+    volumes:
+      - yamdb_db:/var/lib/postgresql/data
+    networks:
+      - traefik-public
 
   backend:
     build:
-      context: ./backend
+      context: ../api_yamdb
       dockerfile: Dockerfile
+    image: yamdb_backend:latest
     container_name: yamdb_backend
     restart: unless-stopped
     env_file:
-      - .env
+      - ./.env
     depends_on:
       - db
     volumes:
-      - static_value:/app/static/
-      - media_value:/app/media/
+      - yamdb_static:/app/static
+      - yamdb_media:/app/media
     command: >
       sh -c "python manage.py collectstatic --noinput &&
              python manage.py migrate --noinput &&
              gunicorn api_yamdb.wsgi:application --bind 0.0.0.0:8000"
+    expose:
+      - "8000"
     networks:
       - traefik-public
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.yamdb-back.rule=Host(`bardev.ru`) && PathPrefix(`/yamdb/api`)
-      - traefik.http.routers.yamdb-back.entrypoints=websecure
-      - traefik.http.routers.yamdb-back.tls.certresolver=le
-      - traefik.http.services.yamdb-back.loadbalancer.server.port=8000
-      - traefik.http.routers.yamdb-back.priority=100
 
   frontend:
     build:
-      context: ./frontend
+      context: ../frontend
       dockerfile: Dockerfile
+    image: yamdb_frontend:latest
     container_name: yamdb_frontend
     restart: unless-stopped
     depends_on:
       - backend
     volumes:
-      - static_value:/usr/share/nginx/html/static/
-      - media_value:/usr/share/nginx/html/media/
-    networks:
-      - traefik-public
+      - yamdb_static:/usr/share/nginx/html/static
+      - yamdb_media:/usr/share/nginx/html/media
+      - yamdb_logs:/var/log/nginx
+    expose:
+      - "80"
     labels:
       - traefik.enable=true
-      - traefik.http.routers.yamdb-front.rule=Host(`bardev.ru`) && PathPrefix(`/yamdb`)
-      - traefik.http.routers.yamdb-front.entrypoints=websecure
-      - traefik.http.routers.yamdb-front.tls.certresolver=le
-      - traefik.http.services.yamdb-front.loadbalancer.server.port=80
-      - traefik.http.routers.yamdb-front.priority=200
+      - traefik.http.routers.yamdb.rule=Host(`bardev.ru`) && PathPrefix(`/yamdb`)
+      - traefik.http.routers.yamdb.entrypoints=websecure
+      - traefik.http.routers.yamdb.tls.certresolver=le
+      # Чтобы главная страница (портфолио) имела больший приоритет
+      - traefik.http.routers.yamdb.priority=10
+      # Объявляем путь как "yamdb"
+      - traefik.http.middlewares.yamdb-stripprefix.stripprefix.prefixes=/yamdb
+      - traefik.http.routers.yamdb.middlewares=yamdb-stripprefix
+    networks:
+      - traefik-public
