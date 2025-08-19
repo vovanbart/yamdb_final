@@ -1,26 +1,33 @@
-version: '3.8'
+version: "3.9"
+
+networks:
+  traefik-public:
+    external: true
+
+volumes:
+  static_value:
+  media_value:
+  data_value:
 
 services:
   db:
     image: postgres:13.0-alpine
+    restart: unless-stopped
     volumes:
       - data_value:/var/lib/postgresql/data/
     env_file:
-      - ./.env
+      - .env
 
-  web:
+  backend:
     build:
-      context: ../api_yamdb       # собираем образ из папки с Django-проектом
-      dockerfile: Dockerfile     # в ней должен быть Dockerfile веб-приложения
-    image: yamdb_web:latest
-    ports:
-      - "8000:8000"
-    container_name: yamdb_web
-    restart: always
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: yamdb_backend
+    restart: unless-stopped
+    env_file:
+      - .env
     depends_on:
       - db
-    env_file:
-      - ./.env
     volumes:
       - static_value:/app/static/
       - media_value:/app/media/
@@ -28,23 +35,33 @@ services:
       sh -c "python manage.py collectstatic --noinput &&
              python manage.py migrate --noinput &&
              gunicorn api_yamdb.wsgi:application --bind 0.0.0.0:8000"
+    networks:
+      - traefik-public
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.yamdb-back.rule=Host(`bardev.ru`) && PathPrefix(`/yamdb/api`)
+      - traefik.http.routers.yamdb-back.entrypoints=websecure
+      - traefik.http.routers.yamdb-back.tls.certresolver=le
+      - traefik.http.services.yamdb-back.loadbalancer.server.port=8000
+      - traefik.http.routers.yamdb-back.priority=100
 
-  nginx:                                      # теперь это фронтенд + reverse-proxy
+  frontend:
     build:
-      context: ../frontend                    # здесь лежит Dockerfile React-приложения
+      context: ./frontend
       dockerfile: Dockerfile
     container_name: yamdb_frontend
+    restart: unless-stopped
     depends_on:
-      - web
-    ports:
-      - "80:80"
+      - backend
     volumes:
-      - static_value:/app/static/            # чтобы раздавать /static/**
-      - media_value:/app/media/              # чтобы раздавать /media/**
-      - logs_value:/var/log/nginx/           # пишем логи внутрь тома
-
-volumes:
-  static_value:
-  media_value:
-  logs_value:
-  data_value:
+      - static_value:/usr/share/nginx/html/static/
+      - media_value:/usr/share/nginx/html/media/
+    networks:
+      - traefik-public
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.yamdb-front.rule=Host(`bardev.ru`) && PathPrefix(`/yamdb`)
+      - traefik.http.routers.yamdb-front.entrypoints=websecure
+      - traefik.http.routers.yamdb-front.tls.certresolver=le
+      - traefik.http.services.yamdb-front.loadbalancer.server.port=80
+      - traefik.http.routers.yamdb-front.priority=200
